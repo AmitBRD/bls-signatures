@@ -84,6 +84,12 @@ friend class Threshold;
     PrependSignature SignPrepend(const uint8_t *msg, size_t len) const;
     PrependSignature SignPrependPrehashed(const uint8_t *msg) const;
 
+    // Derive a child private key
+    PrivateKey PrivateChild(uint32_t i) const;
+
+    // Derive a child public key
+    PublicKey PublicChild(uint32_t i) const;
+
  private:
     // Don't allow public construction, force static methods
     PrivateKey() {}

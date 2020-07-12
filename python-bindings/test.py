@@ -77,22 +77,15 @@ def test1():
     agg_sk = PrivateKey.aggregate([sk1, sk2], [pk1, pk2])
     agg_sk.sign(msg)
 
-    seed = bytes([1, 50, 6, 244, 24, 199, 1, 25, 52, 88, 192,
-                  19, 18, 12, 89, 6, 220, 18, 102, 58, 209,
-                  82, 12, 62, 89, 110, 182, 9, 44, 20, 254, 22])
-
-    esk = ExtendedPrivateKey.from_seed(seed)
-    epk = esk.get_extended_public_key()
-
-    sk_child = esk.private_child(0).private_child(5)
-    pk_child = epk.public_child(0).public_child(5)
+    sk_child = sk1.private_child(0).private_child(5)
+    pk_child = sk1.private_child(0).public_child(5)
 
     buffer1 = pk_child.serialize()
     buffer2 = sk_child.serialize()
 
     print(len(buffer1), buffer1)
     print(len(buffer2), buffer2)
-    assert(sk_child.get_extended_public_key() == pk_child)
+    assert(sk_child.get_public_key() == pk_child)
 
 
 def test2():

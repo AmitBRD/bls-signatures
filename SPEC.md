@@ -254,16 +254,10 @@ These prepend signatures are incompatible with normal aggregate signatures, and 
 
 
 ## HD keys
-HD (Hierarchical Deterministic) keys allow deriving many public and private keys from one seed, and even deriving public keys from other public keys.
+HD (Hierarchical Deterministic) keys allow deriving many public and private keys from one seed.
 
-HD keys follow Bitcoin's BIP32 specification, with the following differences:
-* The HMAC key to generate a master private key used is not "Bitcoin seed" it is "BLS HD seed".
-* The master secret key is generated mod n from the master seed,
-since not all 32 byte sequences are valid BLS private keys
-* Instead of SHA512(input), do hash512(input) as defined above.
-* Mod n for the output of key derivation.
-* ID of a key is hash256(pk) instead of HASH160(pk)
-* Serialization of extended public key is 93 bytes, since BLS public keys are longer
+HD keys follow Ethereum's EIP2333 specification. All keys are hardened, and serialized the same way as
+normal keys.
 
 ## Test vectors
 ### Signatures

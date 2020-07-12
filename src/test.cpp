@@ -1127,124 +1127,38 @@ TEST_CASE("Signatures") {
 }
 
 TEST_CASE("HD keys") {
-    SECTION("Should create an extended private key from seed") {
-        uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 25};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
+    SECTION("Should create HD keys from seed and sign") {
+        uint8_t seed[32];
+        getRandomSeed(seed);
+        ExtendedPrivateKey sk = ExtendedPrivateKey::FromSeed(
                 seed, sizeof(seed));
 
-        ExtendedPrivateKey esk77 = esk.PrivateChild(77 + (1 << 31));
-        ExtendedPrivateKey esk77copy = esk.PrivateChild(77 + (1 << 31));
+        PrivateKey sk77 = sk.PrivateChild(77);
+        PrivateKey sk77copy = sk.PrivateChild(77);
 
-        REQUIRE(esk77 == esk77copy);
+        REQUIRE(sk77 == sk77copy);
 
-        ExtendedPrivateKey esk77nh = esk.PrivateChild(77);
+        PrivateKey sk78 = sk.PrivateChild(78);
 
-        auto eskLong = esk.PrivateChild((1 << 31) + 5)
+        REQUIRE(sk77 != sk78);
+
+        auto skLong = sk.PrivateChild((1 << 31) + 5)
                           .PrivateChild(0)
                           .PrivateChild(0)
                           .PrivateChild((1 << 31) + 56)
                           .PrivateChild(70)
                           .PrivateChild(4);
-        uint8_t chainCode[32];
-        eskLong.GetChainCode().Serialize(chainCode);
-    }
 
+        uint8_t message[7] = {100, 2, 254, 88, 90, 45, 23};
+        uint8_t hash[BLS::MESSAGE_HASH_LEN];
 
-    SECTION("Should match derivation through private and public keys") {
-        uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 25};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
-                seed, sizeof(seed));
-        ExtendedPublicKey epk = esk.GetExtendedPublicKey();
+        Util::Hash256(hash, message, sizeof(message));
 
-        PublicKey pk1 = esk.PrivateChild(238757).GetPublicKey();
-        PublicKey pk2 = epk.PublicChild(238757).GetPublicKey();
-
-        REQUIRE(pk1 == pk2);
-
-        PrivateKey sk3 = esk.PrivateChild(0)
-                              .PrivateChild(3)
-                              .PrivateChild(8)
-                              .PrivateChild(1)
-                              .GetPrivateKey();
-
-        PublicKey pk4 = epk.PublicChild(0)
-                              .PublicChild(3)
-                              .PublicChild(8)
-                              .PublicChild(1)
-                              .GetPublicKey();
-        REQUIRE(sk3.GetPublicKey() == pk4);
-
-        Signature sig = sk3.Sign(seed, sizeof(seed));
-
-        REQUIRE(sig.Verify());
-    }
-
-    SECTION("Should prevent hardened pk derivation") {
-        uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 25};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
-                seed, sizeof(seed));
-        ExtendedPublicKey epk = esk.GetExtendedPublicKey();
-
-        ExtendedPrivateKey sk = esk.PrivateChild((1 << 31) + 3);
-        REQUIRE_THROWS(epk.PublicChild((1 << 31) + 3));
-    }
-
-    SECTION("Should derive public child from parent") {
-        uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 0, 0, 0};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
-                seed, sizeof(seed));
-        ExtendedPublicKey epk = esk.GetExtendedPublicKey();
-
-        ExtendedPublicKey pk1 = esk.PublicChild(13);
-        ExtendedPublicKey pk2 = epk.PublicChild(13);
-
-        REQUIRE(pk1 == pk2);
-    }
-
-    SECTION("Should cout structures") {
-        uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 0, 0, 0};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
-                seed, sizeof(seed));
-        ExtendedPublicKey epk = esk.GetExtendedPublicKey();
-
-        cout << epk << endl;
-        cout << epk.GetPublicKey() << endl;
-        cout << epk.GetChainCode() << endl;
-
-        Signature sig1 = esk.GetPrivateKey()
-                               .Sign(seed, sizeof(seed));
-        cout << sig1 << endl;
-    }
-
-    SECTION("Should serialize extended keys") {
-        uint8_t seed[] = {1, 50, 6, 244, 25, 199, 1, 25};
-        ExtendedPrivateKey esk = ExtendedPrivateKey::FromSeed(
-                seed, sizeof(seed));
-        ExtendedPublicKey epk = esk.GetExtendedPublicKey();
-
-        PublicKey pk1 = esk.PrivateChild(238757).GetPublicKey();
-        PublicKey pk2 = epk.PublicChild(238757).GetPublicKey();
-
-        REQUIRE(pk1 == pk2);
-
-        ExtendedPrivateKey sk3 = esk.PrivateChild(0)
-                              .PrivateChild(3)
-                              .PrivateChild(8)
-                              .PrivateChild(1);
-
-        ExtendedPublicKey pk4 = epk.PublicChild(0)
-                              .PublicChild(3)
-                              .PublicChild(8)
-                              .PublicChild(1);
-        uint8_t buffer1[ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE];
-        uint8_t buffer2[ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE];
-        uint8_t buffer3[ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE];
-
-        sk3.Serialize(buffer1);
-        sk3.GetExtendedPublicKey().Serialize(buffer2);
-        pk4.Serialize(buffer3);
-        REQUIRE(std::memcmp(buffer2, buffer3,
-                ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE) == 0);
+        InsecureSignature sig1 = skLong.SignInsecure(message, sizeof(message));
+        InsecureSignature sig2 = sk78.SignInsecure(message, sizeof(message));
+        REQUIRE(sig1 != sig2);
+        REQUIRE(sig1.Verify({hash}, {skLong.GetPublicKey()}));
+        REQUIRE(sig2.Verify({hash}, {sk78.GetPublicKey()}));
     }
 }
 

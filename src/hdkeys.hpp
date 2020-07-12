@@ -36,38 +36,38 @@ class HDKeys {
     static const uint8_t HASH_LEN = 32;
 
     static void IKMToLamportSk(uint8_t* outputLamportSk, const uint8_t* ikm, size_t ikmLen, const uint8_t* salt, size_t saltLen)  {
-        // Expands the ikm to 255*32 bytes for the lamport sk
+        // Expands the ikm to 255*HASH_LEN bytes for the lamport sk
         const uint8_t info[1] = {0};
-        HKDF256::ExtractExpand(outputLamportSk, 32 * 255, ikm, ikmLen, salt, saltLen, info, 0);
+        HKDF256::ExtractExpand(outputLamportSk, HASH_LEN * 255, ikm, ikmLen, salt, saltLen, info, 0);
     }
 
     static void ParentSkToLamportPK(uint8_t* outputLamportPk, PrivateKey& parentSk, uint32_t index) {
         uint8_t* salt = Util::SecAlloc<uint8_t>(4);
-        uint8_t* ikm = Util::SecAlloc<uint8_t>(32);
-        uint8_t* notIkm = Util::SecAlloc<uint8_t>(32);
-        uint8_t* lamport0 = Util::SecAlloc<uint8_t>(32 * 255);
-        uint8_t* lamport1 = Util::SecAlloc<uint8_t>(32 * 255);
+        uint8_t* ikm = Util::SecAlloc<uint8_t>(HASH_LEN);
+        uint8_t* notIkm = Util::SecAlloc<uint8_t>(HASH_LEN);
+        uint8_t* lamport0 = Util::SecAlloc<uint8_t>(HASH_LEN * 255);
+        uint8_t* lamport1 = Util::SecAlloc<uint8_t>(HASH_LEN * 255);
 
         Util::IntToFourBytes(salt, index);
         parentSk.Serialize(ikm);
 
-        for (size_t i = 0; i < 32; i++) {  // Flips the bits
+        for (size_t i = 0; i < HASH_LEN; i++) {  // Flips the bits
             notIkm[i] = ikm[i] ^ 0xff;
         }
 
-        HDKeys::IKMToLamportSk(lamport0, ikm, 32, salt, 4);
-        HDKeys::IKMToLamportSk(lamport1, notIkm, 32, salt, 4);
+        HDKeys::IKMToLamportSk(lamport0, ikm, HASH_LEN, salt, 4);
+        HDKeys::IKMToLamportSk(lamport1, notIkm, HASH_LEN, salt, 4);
 
-        uint8_t* lamportPk = Util::SecAlloc<uint8_t>(32 * 255 * 2);
+        uint8_t* lamportPk = Util::SecAlloc<uint8_t>(HASH_LEN * 255 * 2);
 
         for (size_t i = 0; i < 255; i++) {
-            Util::Hash256(lamportPk + i * 32, lamport0 + i * 32, 32);
+            Util::Hash256(lamportPk + i * HASH_LEN, lamport0 + i * HASH_LEN, HASH_LEN);
         }
 
         for (size_t i=0; i < 255; i++) {
-            Util::Hash256(lamportPk + 255 * 32 + i * 32, lamport1 + i * 32, 32);
+            Util::Hash256(lamportPk + 255 * HASH_LEN + i * HASH_LEN, lamport1 + i * HASH_LEN, HASH_LEN);
         }
-        Util::Hash256(outputLamportPk, lamportPk, 32 * 255 * 2);
+        Util::Hash256(outputLamportPk, lamportPk, HASH_LEN * 255 * 2);
 
         Util::SecFree(salt);
         Util::SecFree(ikm);
@@ -78,9 +78,9 @@ class HDKeys {
     }
 
     static PrivateKey DeriveChildSk(PrivateKey& parentSk, uint32_t index) {
-        uint8_t* lamportPk = Util::SecAlloc<uint8_t>(32);
+        uint8_t* lamportPk = Util::SecAlloc<uint8_t>(HASH_LEN);
         HDKeys::ParentSkToLamportPK(lamportPk, parentSk, index);
-        PrivateKey child = PrivateKey::FromSeed(lamportPk, 32);
+        PrivateKey child = PrivateKey::FromSeed(lamportPk, HASH_LEN);
         Util::SecFree(lamportPk);
         return child;
     }

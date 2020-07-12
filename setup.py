@@ -85,10 +85,6 @@ ext_modules = [
     Extension(
         'blspy',
         [
-            'src/chaincode.cpp',
-            'src/extendedpublickey.cpp',
-            'src/extendedprivatekey.cpp',
-            'src/chaincode.cpp',
             'src/signature.cpp',
             'src/publickey.cpp',
             'src/privatekey.cpp',

@@ -13,12 +13,9 @@ include_directories(
 
 set(C_LIB ${CMAKE_BINARY_DIR}/libbls.a)
 
-add_library(bls ${CMAKE_CURRENT_SOURCE_DIR}/chaincode.cpp)
+add_library(bls)
 
 add_library(blstmp ${HEADERS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/extendedpublickey.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/extendedprivatekey.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/chaincode.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/signature.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/publickey.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/privatekey.cpp

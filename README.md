@@ -187,31 +187,13 @@ const bls::PrivateKey aggSk = bls::PrivateKey::Aggregate(
 bls::Signature aggSig3 = aggSk.Sign(msg, sizeof(msg));
 ```
 
-#### HD keys
+#### HD keys and trees according to EIP-2333
 ```c++
-// Random seed, used to generate master extended private key
-uint8_t seed[] = {1, 50, 6, 244, 24, 199, 1, 25, 52, 88, 192,
-                  19, 18, 12, 89, 6, 220, 18, 102, 58, 209,
-                  82, 12, 62, 89, 110, 182, 9, 44, 20, 254, 22};
-
-bls::ExtendedPrivateKey esk = bls::ExtendedPrivateKey::FromSeed(
-        seed, sizeof(seed));
-
-bls::ExtendedPublicKey epk = esk.GetExtendedPublicKey();
-
 // Use i >= 2^31 for hardened keys
-bls::ExtendedPrivateKey skChild = esk.PrivateChild(0)
-                                .PrivateChild(5);
+bls::PrivateKey skChild = esk.PrivateChild(234902)
+                             .PrivateChild(2)
+                             .PrivateChild(0);
 
-bls::ExtendedPublicKey pkChild = epk.PublicChild(0)
-                               .PublicChild(5);
-
-// Serialize extended keys
-uint8_t buffer1[bls::ExtendedPublicKey::EXTENDED_PUBLIC_KEY_SIZE];   // 93 bytes
-uint8_t buffer2[bls::ExtendedPrivateKey::EXTENDED_PRIVATE_KEY_SIZE]; // 77 bytes
-
-pkChild.Serialize(buffer1);
-skChild.Serialize(buffer2);
 ```
 
 #### Prepend PK method

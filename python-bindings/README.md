@@ -150,19 +150,8 @@ agg_sk.sign(msg)
 
 #### HD keys
 ```python
-# Random seed, used to generate master extended private key
-seed = bytes([1, 50, 6, 244, 24, 199, 1, 25, 52, 88, 192,
-                19, 18, 12, 89, 6, 220, 18, 102, 58, 209,
-                82, 12, 62, 89, 110, 182, 9, 44, 20, 254, 22])
-
-esk = ExtendedPrivateKey.from_seed(seed)
-epk = esk.get_extended_public_key()
-
 sk_child = esk.private_child(0).private_child(5)
 pk_child = epk.public_child(0).public_child(5)
-
-buffer1 = pk_child.serialize() # 93 bytes
-buffer2 = sk_child.serialize() # 77 bytes
 ```
 
 #### Prepend PK method

@@ -20,6 +20,7 @@
 #include "util.hpp"
 #include "hkdf.hpp"
 #include "privatekey.hpp"
+#include "hdkeys.hpp"
 
 namespace bls {
 PrivateKey PrivateKey::FromSeed(const uint8_t* seed, size_t seedLen) {
@@ -276,6 +277,14 @@ PrependSignature PrivateKey::SignPrependPrehashed(const uint8_t *messageHash) co
     Util::Hash256(finalMessageHash, finalMessage, PublicKey::PUBLIC_KEY_SIZE + BLS::MESSAGE_HASH_LEN);
 
     return PrependSignature::FromInsecureSig(SignInsecurePrehashed(finalMessageHash));
+}
+
+PrivateKey PrivateKey::PrivateChild(uint32_t i) const {
+    return HDKeys::DeriveChildSk(this, i);
+}
+
+PublicKey PublicKey::PublicChild(uint32_t i) const {
+    return PrivateChild(i).GetPublicKey();
 }
 
 void PrivateKey::AllocateKeyData() {
