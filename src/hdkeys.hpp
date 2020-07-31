@@ -15,16 +15,17 @@
 #ifndef SRC_BLSHDKEYS_HPP_
 #define SRC_BLSHDKEYS_HPP_
 
-#include "relic_conf.h"
 #include <math.h>
+
+#include "relic_conf.h"
 
 #if defined GMP && ARITH == GMP
 #include <gmp.h>
 #endif
 
-#include "util.hpp"
-#include "privatekey.hpp"
 #include "hkdf.hpp"
+#include "privatekey.hpp"
+#include "util.hpp"
 
 namespace bls {
 
@@ -32,16 +33,27 @@ class HDKeys {
     /**
      * Implements HD keys as specified in EIP2333.
      **/
- public:
+public:
     static const uint8_t HASH_LEN = 32;
 
-    static void IKMToLamportSk(uint8_t* outputLamportSk, const uint8_t* ikm, size_t ikmLen, const uint8_t* salt, size_t saltLen)  {
+    static void IKMToLamportSk(
+        uint8_t* outputLamportSk,
+        const uint8_t* ikm,
+        size_t ikmLen,
+        const uint8_t* salt,
+        size_t saltLen)
+    {
         // Expands the ikm to 255*32 bytes for the lamport sk
         const uint8_t info[1] = {0};
-        HKDF256::ExtractExpand(outputLamportSk, 32 * 255, ikm, ikmLen, salt, saltLen, info, 0);
+        HKDF256::ExtractExpand(
+            outputLamportSk, 32 * 255, ikm, ikmLen, salt, saltLen, info, 0);
     }
 
-    static void ParentSkToLamportPK(uint8_t* outputLamportPk, PrivateKey& parentSk, uint32_t index) {
+    static void ParentSkToLamportPK(
+        uint8_t* outputLamportPk,
+        PrivateKey& parentSk,
+        uint32_t index)
+    {
         uint8_t* salt = Util::SecAlloc<uint8_t>(4);
         uint8_t* ikm = Util::SecAlloc<uint8_t>(32);
         uint8_t* notIkm = Util::SecAlloc<uint8_t>(32);
@@ -64,7 +76,7 @@ class HDKeys {
             Util::Hash256(lamportPk + i * 32, lamport0 + i * 32, 32);
         }
 
-        for (size_t i=0; i < 255; i++) {
+        for (size_t i = 0; i < 255; i++) {
             Util::Hash256(lamportPk + 255 * 32 + i * 32, lamport1 + i * 32, 32);
         }
         Util::Hash256(outputLamportPk, lamportPk, 32 * 255 * 2);
@@ -77,13 +89,53 @@ class HDKeys {
         Util::SecFree(lamportPk);
     }
 
-    static PrivateKey DeriveChildSk(PrivateKey& parentSk, uint32_t index) {
+    static PrivateKey DeriveChildSk(PrivateKey& parentSk, uint32_t index)
+    {
         uint8_t* lamportPk = Util::SecAlloc<uint8_t>(32);
         HDKeys::ParentSkToLamportPK(lamportPk, parentSk, index);
         PrivateKey child = PrivateKey::FromSeed(lamportPk, 32);
         Util::SecFree(lamportPk);
         return child;
     }
+
+    static PrivateKey DeriveUnhardenedChildSkMPL(
+        PrivateKey& parentSk,
+        uint32_t index)
+    {
+        uint8_t* buf = Util::SecAlloc<uint8_t>(G1Element::SIZE + 4);
+        uint8_t* digest = Util::SecAlloc<uint8_t>(32);
+        parentSk.GetG1Element().Serialize(buf);
+        Util::IntToFourBytes(buf + G1Element::SIZE, index);
+        Util::Hash256(digest, buf, G1Element::SIZE + 4);
+
+        bn_t nonce;
+        bn_new(nonce);
+        bn_zero(nonce);
+        bn_read_bin(nonce, digest, 32);
+        return PrivateKey::Aggregate({parentSk, PrivateKey::FromBN(nonce)});
+    }
+
+    static G1Element DeriveUnhardenedChildG1(
+        G1Element& parentPubkey,
+        uint32_t index)
+    {
+        uint8_t* buf = Util::SecAlloc<uint8_t>(G1Element::SIZE + 4);
+        uint8_t* digest = Util::SecAlloc<uint8_t>(32);
+        parentPubkey.Serialize(buf);
+        Util::IntToFourBytes(buf + G1Element::SIZE, index);
+        Util::Hash256(digest, buf, G1Element::SIZE + 4);
+
+        bn_t bn;
+        bn_new(bn);
+        bn_zero(bn);
+        bn_read_bin(bn, digest, 32);
+        G1Element ans = G1Element::Generator();
+        ans *= bn;
+
+        bn_free(bn);
+        ans += parentPubkey;
+        return ans;
+    }
 };
-} // end namespace bls
+}  // end namespace bls
 #endif  // SRC_BLSHDKEYS_HPP_

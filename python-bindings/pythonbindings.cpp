@@ -141,6 +141,11 @@ PYBIND11_MODULE(blspy, m)
             [](PrivateKey &k, uint32_t index) {
                 return HDKeys::DeriveChildSk(k, index);
             })
+        .def(
+            "derive_unhardened_child",
+            [](PrivateKey &k, uint32_t index) {
+                return HDKeys::DeriveUnhardenedChildSkMPL(k, index);
+            })
 
         .def(py::self == py::self)
         .def(py::self != py::self)
@@ -356,6 +361,11 @@ PYBIND11_MODULE(blspy, m)
         .def("pair", &G1Element::pair)
         .def("inverse", &G1Element::Inverse)
         .def("get_fingerprint", &G1Element::GetFingerprint)
+        .def(
+            "derive_unhardened_child",
+            [](G1Element &ele, uint32_t index) {
+                return HDKeys::DeriveUnhardenedChildG1(ele, index);
+            })
 
         .def(py::self == py::self)
         .def(py::self != py::self)
